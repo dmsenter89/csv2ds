@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 )
 
@@ -15,7 +16,8 @@ func main() {
 
 	files := os.Args[1:]
 	for _, f := range files {
-		fmt.Printf("%s\n", filenameWithoutExtension(f))
+		var fname string = filenameWithoutExtension(f)
+		fmt.Printf("'%s'\n", validateMemName(fname))
 	}
 
 	fmt.Println("Initial commit line.")
@@ -29,4 +31,30 @@ func filenameWithoutExtension(filepath string) string {
 	var fileName string = path.Base(filepath)
 	var fileExtension string = path.Ext(filepath)
 	return strings.TrimSuffix(fileName, fileExtension)
+}
+
+// validateMemName returns a string that is
+// considered a SAS validmemname=compatible string.
+// This includes the following rules: 1) the length is
+// up to 32 characters, 2) the name may not
+// contain blanks or any special characters other than the
+// underscore, 3) names must begin with a Latin
+// alphabet character or an underscore.
+func validateMemName(fileBase string) string {
+	var compatibleName string = fileBase
+
+	// ensure that the membername is not more than 32 characters long
+	if len(fileBase) > 32 {
+		compatibleName = fileBase[:32]
+	}
+
+	var re = regexp.MustCompile(`(\W+)`)
+	compatibleName = re.ReplaceAllString(compatibleName, "_")
+
+	// must start with latin character or underscore
+	re = regexp.MustCompile(`(?m)^([^a-zA-Z_])`)
+	var substitution = "_$1"
+	compatibleName = re.ReplaceAllString(compatibleName, substitution)
+
+	return compatibleName
 }
