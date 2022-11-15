@@ -8,6 +8,13 @@ import (
 	"strings"
 )
 
+type CSVData struct {
+	dsName    string
+	header    []string
+	records   [][]string
+	isNumeric []bool
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		usage()
@@ -82,4 +89,22 @@ func isStringOnlyNumeric(input string) bool {
 	// a match means that the string contains an unexpected symbol
 	// so we need to negate the bool value in the return.
 	return !re.MatchString(input)
+}
+
+// Given the name of the CSV file and the [][]string returned by the
+// CSV reader, initialize a CSVData element.
+func initializeCSVData(filename string, csvrecords [][]string) CSVData {
+	var data CSVData
+	data.dsName = validateMemName(filename)
+	data.header = csvrecords[0]
+	data.records = csvrecords[1:]
+
+	data.isNumeric = make([]bool, len(data.header))
+
+	for i := range data.header {
+		columnValues := collectColumnAsString(data.records, i)
+		data.isNumeric[i] = isStringOnlyNumeric(columnValues)
+	}
+
+	return data
 }
