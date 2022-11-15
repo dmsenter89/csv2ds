@@ -18,18 +18,22 @@ type CSVData struct {
 }
 
 func main() {
-	if len(os.Args) < 2 {
+	var args int = len(os.Args)
+	var output string
+
+	if args > 1 { // process all files given in CLI
+		for i := range os.Args[1:] {
+			filename := os.Args[i+1]
+			ds := processFile(filename)
+			output += ds
+		}
+	} else {
 		usage()
 		os.Exit(1)
 	}
 
-	files := os.Args[1:]
-	for _, f := range files {
-		var fname string = filenameWithoutExtension(f)
-		fmt.Printf("'%s'\n", validateMemName(fname))
-	}
+	fmt.Println(output)
 
-	fmt.Println("Initial commit line.")
 }
 
 func usage() {
@@ -97,7 +101,7 @@ func isStringOnlyNumeric(input string) bool {
 // CSV reader, initialize a CSVData element.
 func initializeCSVData(filename string, csvrecords [][]string) CSVData {
 	var data CSVData
-	data.dsName = validateMemName(filename)
+	data.dsName = validateMemName(filenameWithoutExtension(filename))
 	data.records = csvrecords[1:]
 
 	data.header = make([]string, len(csvrecords[0]))
@@ -156,4 +160,31 @@ func buildDatalines(records [][]string) string {
 	w := csv.NewWriter(buf)
 	w.WriteAll(records)
 	return buf.String()
+}
+
+// processFile is the main driver of this program. It reads the relevant
+// file, initializes a CSVData object and generates the data step template.
+func processFile(filename string) string {
+	records := readCSV(filename)
+	data := initializeCSVData(filename, records)
+	ds := writeDataStepFromCSVData(data)
+
+	return ds
+}
+
+func readCSV(filepath string) [][]string {
+	f, err := os.Open(filepath)
+	if err != nil {
+		fmt.Printf("Error - cannot open file %s.\n", filepath)
+		os.Exit(2)
+	}
+	defer f.Close()
+	reader := csv.NewReader(f)
+	// r := csv.NewReader(strings.NewReader(os.Args[1]))
+	records, err := reader.ReadAll()
+	if err != nil {
+		fmt.Printf("Error - cannot read file %s.\n", filepath)
+		os.Exit(3)
+	}
+	return records
 }
