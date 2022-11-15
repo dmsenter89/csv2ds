@@ -104,15 +104,21 @@ func Test_isStringOnlyNumeric(t *testing.T) {
 }
 
 func Test_initializeCSVData(t *testing.T) {
-	sampleCSV := [][]string{{"Name", "Sex", "Age", "Height", "Weight"},
+	simpleCSV := [][]string{{"Name", "Sex", "Age", "Height", "Weight"},
 		{"Alfred", "M", "14", "69", "112.5"},
 		{"Alice", "F", "13", "56.5", "84"},
 		{"Barbara", "F", "13", "65.3", "-98"}}
-	sampleRecords := [][]string{{"Alfred", "M", "14", "69", "112.5"},
+	simpleRecords := [][]string{{"Alfred", "M", "14", "69", "112.5"},
 		{"Alice", "F", "13", "56.5", "84"},
 		{"Barbara", "F", "13", "65.3", "-98"}}
-	sampleHeader := []string{"Name", "Sex", "Age", "Height", "Weight"}
-	sampleNumeric := []bool{false, false, true, true, true}
+	simpleHeader := []string{"Name", "Sex", "Age", "Height", "Weight"}
+	simpleNumeric := []bool{false, false, true, true, true}
+
+	harderCSV := [][]string{{"Name", "4Sex", "Age!", "Height", "$Weight"},
+		{"Alfred", "M", "14", "69", "112.5"},
+		{"Alice", "F", "13", "56.5", "84"},
+		{"Barbara", "F", "13", "65.3", "-98"}}
+	harderCSVheader := []string{"Name", "_4Sex", "Age_", "Height", "_Weight"}
 
 	type args struct {
 		filename   string
@@ -123,8 +129,12 @@ func Test_initializeCSVData(t *testing.T) {
 		args args
 		want CSVData
 	}{
-		{"Basic CSV, name to be fixed", args{"sample data", sampleCSV},
-			CSVData{"sample_data", sampleHeader, sampleRecords, sampleNumeric}},
+		{"Simple CSV", args{"sampleData", simpleCSV},
+			CSVData{"sampleData", simpleHeader, simpleRecords, simpleNumeric}},
+		{"Basic CSV, name to be fixed", args{"sample data", simpleCSV},
+			CSVData{"sample_data", simpleHeader, simpleRecords, simpleNumeric}},
+		{"Harder CSV", args{"!Bad$Name", harderCSV},
+			CSVData{"_Bad_Name", harderCSVheader, simpleRecords, simpleNumeric}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

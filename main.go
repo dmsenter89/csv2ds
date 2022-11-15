@@ -47,12 +47,12 @@ func filenameWithoutExtension(filepath string) string {
 // contain blanks or any special characters other than the
 // underscore, 3) names must begin with a Latin
 // alphabet character or an underscore.
-func validateMemName(fileBase string) string {
-	var compatibleName string = fileBase
+func validateMemName(sourceString string) string {
+	var compatibleName string = sourceString
 
 	// ensure that the membername is not more than 32 characters long
-	if len(fileBase) > 32 {
-		compatibleName = fileBase[:32]
+	if len(sourceString) > 32 {
+		compatibleName = sourceString[:32]
 	}
 
 	var re = regexp.MustCompile(`(\W+)`)
@@ -96,12 +96,14 @@ func isStringOnlyNumeric(input string) bool {
 func initializeCSVData(filename string, csvrecords [][]string) CSVData {
 	var data CSVData
 	data.dsName = validateMemName(filename)
-	data.header = csvrecords[0]
 	data.records = csvrecords[1:]
 
+	data.header = make([]string, len(csvrecords[0]))
 	data.isNumeric = make([]bool, len(data.header))
 
 	for i := range data.header {
+		data.header[i] = validateMemName(csvrecords[0][i])
+
 		columnValues := collectColumnAsString(data.records, i)
 		data.isNumeric[i] = isStringOnlyNumeric(columnValues)
 	}
