@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/csv"
 	"fmt"
 	"os"
 	"path"
@@ -109,4 +111,49 @@ func initializeCSVData(filename string, csvrecords [][]string) CSVData {
 	}
 
 	return data
+}
+
+// writeDataStepFromCSVData uses the fields in CSVData to generate
+// a complete template data step that can be run in SAS.
+func writeDataStepFromCSVData(data CSVData) string {
+	var template string = fmt.Sprintf("data %s;\n", data.dsName)
+
+	template += fmt.Sprintln("\tinfile datalines DSD;")
+
+	template += fmt.Sprintf("\t%s\n", buildInputStatement(data.header, data.isNumeric))
+	template += fmt.Sprintln("\tdatalines;")
+
+	template += fmt.Sprint(buildDatalines(data.records))
+
+	template += ";\n"
+
+	return template
+}
+
+// buildInputStatement generates the input statement for the SAS data
+// step without preceeding tab or newline. Adds the '$' for after the
+// name of string variables.
+func buildInputStatement(header []string, isNumeric []bool) string {
+	var statement string = "input"
+
+	for i, name := range header {
+		statement += fmt.Sprintf(" %s", name)
+
+		if !isNumeric[i] {
+			statement += " $"
+		}
+	}
+
+	statement += ";"
+
+	return statement
+}
+
+// buildDatalines writes the CSV input for the actual records
+// back to a string for use in the datalines statement.
+func buildDatalines(records [][]string) string {
+	buf := new(bytes.Buffer)
+	w := csv.NewWriter(buf)
+	w.WriteAll(records)
+	return buf.String()
 }
