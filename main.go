@@ -58,3 +58,28 @@ func validateMemName(fileBase string) string {
 
 	return compatibleName
 }
+
+// collectColumnAsString Iterates over a particular column of the CSV
+// record and collects everything into a single long string. This is
+// a helper function to assist in determining if a particular column
+// is numeric or not using isStringOnlyNumeric.
+func collectColumnAsString(records [][]string, colNumber int) string {
+	var columnString string
+
+	// skip through the header row while accessing elements
+	for _, elem := range records[1:] {
+		columnString += elem[colNumber]
+	}
+
+	return columnString
+}
+
+// isStringOnlyNumeric parses the output of collectColumnAsString
+// and returns true if only valid numeric symbols are found,
+// false otherwise.
+func isStringOnlyNumeric(input string) bool {
+	var re = regexp.MustCompile(`[^\d\-\+\.]`)
+	// a match means that the string contains an unexpected symbol
+	// so we need to negate the bool value in the return.
+	return !re.MatchString(input)
+}

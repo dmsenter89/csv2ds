@@ -50,3 +50,54 @@ func Test_validateMemName(t *testing.T) {
 		})
 	}
 }
+
+func Test_collectColumnAsString(t *testing.T) {
+	sampleCSV := [][]string{{"Name", "Sex", "Age", "Height", "Weight"},
+		{"Alfred", "M", "14", "69", "112.5"},
+		{"Alice", "F", "13", "56.5", "84"},
+		{"Barbara", "F", "13", "65.3", "-98"}}
+
+	type args struct {
+		records   [][]string
+		colNumber int
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{"Letters only", args{sampleCSV, 1}, "MFF"},
+		{"Ints Only", args{sampleCSV, 2}, "141313"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := collectColumnAsString(tt.args.records, tt.args.colNumber); got != tt.want {
+				t.Errorf("collectColumnAsString() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_isStringOnlyNumeric(t *testing.T) {
+
+	type args struct {
+		input string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{"Character string only", args{"AlfredAliceBarbara"}, false},
+		{"Ints only", args{"141313"}, true},
+		{"Ints and dollar sign", args{"1413$13"}, false},
+		{"Floats with signs", args{"69-56.5+65.3"}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isStringOnlyNumeric(tt.args.input); got != tt.want {
+				t.Errorf("isStringOnlyNumeric() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
