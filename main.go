@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/csv"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"regexp"
@@ -38,6 +40,9 @@ func main() {
 
 func usage() {
 	fmt.Printf("Usage: %s file1 [file2...]\n", path.Base(os.Args[0]))
+	fmt.Printf("\nConverts one or more CSV files to a SAS Data Step using the datalines statement.\n")
+	fmt.Printf("Output is written to stdout. The data set name will be the basename of fileD\n")
+	fmt.Printf("without the extension. If fileD equals '-' the CSV data is read from stdin.\n")
 }
 
 func filenameWithoutExtension(filepath string) string {
@@ -101,7 +106,12 @@ func isStringOnlyNumeric(input string) bool {
 // CSV reader, initialize a CSVData element.
 func initializeCSVData(filename string, csvrecords [][]string) CSVData {
 	var data CSVData
-	data.dsName = validateMemName(filenameWithoutExtension(filename))
+	if filename == "-" {
+		data.dsName = "SAMPLEDATA"
+	} else {
+		data.dsName = validateMemName(filenameWithoutExtension(filename))
+	}
+
 	data.records = csvrecords[1:]
 
 	data.header = make([]string, len(csvrecords[0]))
@@ -165,25 +175,46 @@ func buildDatalines(records [][]string) string {
 // processFile is the main driver of this program. It reads the relevant
 // file, initializes a CSVData object and generates the data step template.
 func processFile(filename string) string {
-	records := readCSV(filename)
+	var contents []byte
+	if filename == "-" {
+		// read from STDIN
+		contents = readSTDIN()
+	} else {
+		contents = readFile(filename)
+	}
+
+	records := readCSV(contents)
 	data := initializeCSVData(filename, records)
 	ds := writeDataStepFromCSVData(data)
 
 	return ds
 }
 
-func readCSV(filepath string) [][]string {
-	f, err := os.Open(filepath)
+func readFile(filepath string) []byte {
+	content, err := os.ReadFile(filepath)
 	if err != nil {
 		fmt.Printf("Error - cannot open file %s.\n", filepath)
 		os.Exit(2)
 	}
-	defer f.Close()
-	reader := csv.NewReader(f)
-	// r := csv.NewReader(strings.NewReader(os.Args[1]))
+	return content
+}
+
+func readSTDIN() []byte {
+	reader := bufio.NewReader(os.Stdin)
+	pipe, err := io.ReadAll(reader)
+	if err != nil {
+		fmt.Println("Error reading from STDIN.")
+		os.Exit(2)
+	}
+	return pipe
+}
+
+func readCSV(content []byte) [][]string {
+	reader := csv.NewReader(bytes.NewReader(content))
+
 	records, err := reader.ReadAll()
 	if err != nil {
-		fmt.Printf("Error - cannot read file %s.\n", filepath)
+		fmt.Printf("Error - cannot read contents of current file.\n")
 		os.Exit(3)
 	}
 	return records
