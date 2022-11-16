@@ -229,3 +229,23 @@ Barbara,F,13,65.3,-98
 		})
 	}
 }
+
+func Test_maxLengthOfColumn(t *testing.T) {
+	type args struct {
+		records [][]string
+	}
+	tests := []struct {
+		name string
+		args args
+		want []int
+	}{
+		{"Simple Base Case", args{records: [][]string{{"a", "bb", "ccc"}, {"ddd", "e", "ffff"}, {"ggggggg", "hhhh", "i"}, {"jj", "kk", "lll"}}}, []int{7, 4, 4}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := maxLengthOfColumn(tt.args.records); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("maxLengthOfColumn() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

@@ -102,6 +102,23 @@ func isStringOnlyNumeric(input string) bool {
 	return !re.MatchString(input)
 }
 
+// maxLengthOfColumn traverses each column of a CSV record to find
+// the entry that consists of the longest string.
+func maxLengthOfColumn(records [][]string) []int {
+	maxLength := make([]int, len(records[0]))
+
+	for _, row := range records {
+		for i, entry := range row {
+			var length int = len(entry)
+			if length > maxLength[i] {
+				maxLength[i] = length
+			}
+		}
+	}
+
+	return maxLength
+}
+
 // Given the name of the CSV file and the [][]string returned by the
 // CSV reader, initialize a CSVData element.
 func initializeCSVData(filename string, csvrecords [][]string) CSVData {
