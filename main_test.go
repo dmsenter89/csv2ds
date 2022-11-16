@@ -130,11 +130,11 @@ func Test_initializeCSVData(t *testing.T) {
 		want CSVData
 	}{
 		{"Simple CSV", args{"sampleData", simpleCSV},
-			CSVData{"sampleData", simpleHeader, simpleRecords, simpleNumeric}},
+			CSVData{dsName: "sampleData", header: simpleHeader, records: simpleRecords, isNumeric: simpleNumeric, maxLength: []int{7, 1, 2, 4, 5}}},
 		{"Basic CSV, name to be fixed", args{"sample data", simpleCSV},
-			CSVData{"sample_data", simpleHeader, simpleRecords, simpleNumeric}},
+			CSVData{dsName: "sample_data", header: simpleHeader, records: simpleRecords, isNumeric: simpleNumeric, maxLength: []int{7, 1, 2, 4, 5}}},
 		{"Harder CSV", args{"!Bad$Name", harderCSV},
-			CSVData{"_Bad_Name", harderCSVheader, simpleRecords, simpleNumeric}},
+			CSVData{dsName: "_Bad_Name", header: harderCSVheader, records: simpleRecords, isNumeric: simpleNumeric, maxLength: []int{7, 1, 2, 4, 5}}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -166,13 +166,31 @@ Barbara,F,13,65.3,-98
 		want string
 	}{
 		{"Base Case", args{
-			CSVData{"sample",
-				[]string{"Name", "Sex", "Age", "Height", "Weight"},
-				[][]string{{"Alfred", "M", "14", "69", "112.5"},
+			CSVData{dsName: "sample",
+				header: []string{"Name", "Sex", "Age", "Height", "Weight"},
+				records: [][]string{{"Alfred", "M", "14", "69", "112.5"},
 					{"Alice", "F", "13", "56.5", "84"},
 					{"Barbara", "F", "13", "65.3", "-98"}},
-				[]bool{false, false, true, true, true}},
+				isNumeric: []bool{false, false, true, true, true}},
 		}, solution},
+		{"Case including a length statement", args{
+			CSVData{
+				dsName: "sample",
+				header: []string{"var1", "var2"},
+				records: [][]string{{"1", "A long string"},
+					{"2", "An even longer string"}},
+				isNumeric: []bool{true, false},
+				maxLength: []int{10, 21},
+			}},
+			`data sample;
+	infile datalines DSD;
+	length var2 $21;
+	input var1 var2 $;
+	datalines;
+1,A long string
+2,An even longer string
+;
+`},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -225,6 +243,68 @@ Barbara,F,13,65.3,-98
 		t.Run(tt.name, func(t *testing.T) {
 			if got := buildDatalines(tt.args.records); got != tt.want {
 				t.Errorf("buildDatalines() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_maxLengthOfColumn(t *testing.T) {
+	type args struct {
+		records [][]string
+	}
+	tests := []struct {
+		name string
+		args args
+		want []int
+	}{
+		{"Simple Base Case", args{records: [][]string{{"a", "bb", "ccc"}, {"ddd", "e", "ffff"}, {"ggggggg", "hhhh", "i"}, {"jj", "kk", "lll"}}}, []int{7, 4, 4}},
+		{"SimpleRecords Case", args{records: [][]string{{"Alfred", "M", "14", "69", "112.5"},
+			{"Alice", "F", "13", "56.5", "84"},
+			{"Barbara", "F", "13", "65.3", "-98"}}}, []int{7, 1, 2, 4, 5}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := maxLengthOfColumn(tt.args.records); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("maxLengthOfColumn() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_buildLengthStatement(t *testing.T) {
+	type args struct {
+		data CSVData
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{"One Long Variable, no numbers", args{CSVData{
+			header:    []string{"var"},
+			isNumeric: []bool{false},
+			maxLength: []int{20},
+		}}, "length var $20;"},
+		{"Two vars, one numeric", args{CSVData{
+			header:    []string{"var1", "var2"},
+			isNumeric: []bool{true, false},
+			maxLength: []int{20, 20},
+		}}, "length var2 $20;"},
+		{"One numeric, no return", args{CSVData{
+			header:    []string{"var"},
+			isNumeric: []bool{true},
+			maxLength: []int{99},
+		}}, ""},
+		{"Two short variables", args{CSVData{
+			header:    []string{"var1", "var2"},
+			isNumeric: []bool{false, false},
+			maxLength: []int{2, 8},
+		}}, ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := buildLengthStatement(tt.args.data); got != tt.want {
+				t.Errorf("buildLengthStatement() = '%v', want '%v'", got, tt.want)
 			}
 		})
 	}

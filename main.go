@@ -17,6 +17,7 @@ type CSVData struct {
 	header    []string
 	records   [][]string
 	isNumeric []bool
+	maxLength []int
 }
 
 func main() {
@@ -102,6 +103,23 @@ func isStringOnlyNumeric(input string) bool {
 	return !re.MatchString(input)
 }
 
+// maxLengthOfColumn traverses each column of a CSV record to find
+// the entry that consists of the longest string.
+func maxLengthOfColumn(records [][]string) []int {
+	maxLength := make([]int, len(records[0]))
+
+	for _, row := range records {
+		for i, entry := range row {
+			var length int = len(entry)
+			if length > maxLength[i] {
+				maxLength[i] = length
+			}
+		}
+	}
+
+	return maxLength
+}
+
 // Given the name of the CSV file and the [][]string returned by the
 // CSV reader, initialize a CSVData element.
 func initializeCSVData(filename string, csvrecords [][]string) CSVData {
@@ -116,6 +134,7 @@ func initializeCSVData(filename string, csvrecords [][]string) CSVData {
 
 	data.header = make([]string, len(csvrecords[0]))
 	data.isNumeric = make([]bool, len(data.header))
+	data.maxLength = maxLengthOfColumn(data.records)
 
 	for i := range data.header {
 		data.header[i] = validateMemName(csvrecords[0][i])
@@ -134,6 +153,12 @@ func writeDataStepFromCSVData(data CSVData) string {
 
 	template += fmt.Sprintln("\tinfile datalines DSD;")
 
+	var lenstatement string = buildLengthStatement(data)
+
+	if lenstatement != "" {
+		template += fmt.Sprintf("\t%s\n", lenstatement)
+	}
+
 	template += fmt.Sprintf("\t%s\n", buildInputStatement(data.header, data.isNumeric))
 	template += fmt.Sprintln("\tdatalines;")
 
@@ -142,6 +167,29 @@ func writeDataStepFromCSVData(data CSVData) string {
 	template += ";\n"
 
 	return template
+}
+
+// By default, SAS stores character variables as 8 bytes. A length
+// statement is used to specify that a longer string is meant to be
+// stored. The buildLengthStatement function iterates over the maximum
+// column item lengths and generates the appropriate length statement.
+// If no length statement is neccesary, an empty string is returned.
+func buildLengthStatement(data CSVData) string {
+	var statement string = "length"
+	for i, elem := range data.maxLength {
+		if elem > 8 && !data.isNumeric[i] {
+			statement += fmt.Sprintf(" %s $%d", data.header[i], elem)
+		}
+	}
+
+	statement += ";"
+
+	// if no character is longer than 8 bytes, return emtpy string
+	if statement == "length;" {
+		statement = ""
+	}
+
+	return statement
 }
 
 // buildInputStatement generates the input statement for the SAS data
