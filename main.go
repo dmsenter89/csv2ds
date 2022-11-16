@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/csv"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"regexp"
@@ -101,7 +103,12 @@ func isStringOnlyNumeric(input string) bool {
 // CSV reader, initialize a CSVData element.
 func initializeCSVData(filename string, csvrecords [][]string) CSVData {
 	var data CSVData
-	data.dsName = validateMemName(filenameWithoutExtension(filename))
+	if filename == "-" {
+		data.dsName = "SAMPLEDATA"
+	} else {
+		data.dsName = validateMemName(filenameWithoutExtension(filename))
+	}
+
 	data.records = csvrecords[1:]
 
 	data.header = make([]string, len(csvrecords[0]))
@@ -165,7 +172,13 @@ func buildDatalines(records [][]string) string {
 // processFile is the main driver of this program. It reads the relevant
 // file, initializes a CSVData object and generates the data step template.
 func processFile(filename string) string {
-	var contents []byte = readFile(filename)
+	var contents []byte
+	if filename == "-" {
+		// read from STDIN
+		contents = readSTDIN()
+	} else {
+		contents = readFile(filename)
+	}
 
 	records := readCSV(contents)
 	data := initializeCSVData(filename, records)
@@ -181,6 +194,16 @@ func readFile(filepath string) []byte {
 		os.Exit(2)
 	}
 	return content
+}
+
+func readSTDIN() []byte {
+	reader := bufio.NewReader(os.Stdin)
+	pipe, err := io.ReadAll(reader)
+	if err != nil {
+		fmt.Println("Error reading from STDIN.")
+		os.Exit(2)
+	}
+	return pipe
 }
 
 func readCSV(content []byte) [][]string {
