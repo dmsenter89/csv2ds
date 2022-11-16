@@ -40,6 +40,9 @@ func main() {
 
 func usage() {
 	fmt.Printf("Usage: %s file1 [file2...]\n", path.Base(os.Args[0]))
+	fmt.Printf("\nConverts one or more CSV files to a SAS Data Step using the datalines statement.\n")
+	fmt.Printf("Output is written to stdout. The data set name will be the basename of fileD\n")
+	fmt.Printf("without the extension. If fileD equals '-' the CSV data is read from stdin.\n")
 }
 
 func filenameWithoutExtension(filepath string) string {
