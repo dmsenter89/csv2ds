@@ -130,11 +130,11 @@ func Test_initializeCSVData(t *testing.T) {
 		want CSVData
 	}{
 		{"Simple CSV", args{"sampleData", simpleCSV},
-			CSVData{"sampleData", simpleHeader, simpleRecords, simpleNumeric}},
+			CSVData{dsName: "sampleData", header: simpleHeader, records: simpleRecords, isNumeric: simpleNumeric, maxLength: []int{7, 1, 2, 4, 5}}},
 		{"Basic CSV, name to be fixed", args{"sample data", simpleCSV},
-			CSVData{"sample_data", simpleHeader, simpleRecords, simpleNumeric}},
+			CSVData{dsName: "sample_data", header: simpleHeader, records: simpleRecords, isNumeric: simpleNumeric, maxLength: []int{7, 1, 2, 4, 5}}},
 		{"Harder CSV", args{"!Bad$Name", harderCSV},
-			CSVData{"_Bad_Name", harderCSVheader, simpleRecords, simpleNumeric}},
+			CSVData{dsName: "_Bad_Name", header: harderCSVheader, records: simpleRecords, isNumeric: simpleNumeric, maxLength: []int{7, 1, 2, 4, 5}}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -166,12 +166,12 @@ Barbara,F,13,65.3,-98
 		want string
 	}{
 		{"Base Case", args{
-			CSVData{"sample",
-				[]string{"Name", "Sex", "Age", "Height", "Weight"},
-				[][]string{{"Alfred", "M", "14", "69", "112.5"},
+			CSVData{dsName: "sample",
+				header: []string{"Name", "Sex", "Age", "Height", "Weight"},
+				records: [][]string{{"Alfred", "M", "14", "69", "112.5"},
 					{"Alice", "F", "13", "56.5", "84"},
 					{"Barbara", "F", "13", "65.3", "-98"}},
-				[]bool{false, false, true, true, true}},
+				isNumeric: []bool{false, false, true, true, true}},
 		}, solution},
 	}
 	for _, tt := range tests {
@@ -240,6 +240,9 @@ func Test_maxLengthOfColumn(t *testing.T) {
 		want []int
 	}{
 		{"Simple Base Case", args{records: [][]string{{"a", "bb", "ccc"}, {"ddd", "e", "ffff"}, {"ggggggg", "hhhh", "i"}, {"jj", "kk", "lll"}}}, []int{7, 4, 4}},
+		{"SimpleRecords Case", args{records: [][]string{{"Alfred", "M", "14", "69", "112.5"},
+			{"Alice", "F", "13", "56.5", "84"},
+			{"Barbara", "F", "13", "65.3", "-98"}}}, []int{7, 1, 2, 4, 5}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

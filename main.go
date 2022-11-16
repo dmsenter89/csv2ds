@@ -17,6 +17,7 @@ type CSVData struct {
 	header    []string
 	records   [][]string
 	isNumeric []bool
+	maxLength []int
 }
 
 func main() {
@@ -133,6 +134,7 @@ func initializeCSVData(filename string, csvrecords [][]string) CSVData {
 
 	data.header = make([]string, len(csvrecords[0]))
 	data.isNumeric = make([]bool, len(data.header))
+	data.maxLength = maxLengthOfColumn(data.records)
 
 	for i := range data.header {
 		data.header[i] = validateMemName(csvrecords[0][i])
