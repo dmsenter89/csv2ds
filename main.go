@@ -165,25 +165,30 @@ func buildDatalines(records [][]string) string {
 // processFile is the main driver of this program. It reads the relevant
 // file, initializes a CSVData object and generates the data step template.
 func processFile(filename string) string {
-	records := readCSV(filename)
+	var contents []byte = readFile(filename)
+
+	records := readCSV(contents)
 	data := initializeCSVData(filename, records)
 	ds := writeDataStepFromCSVData(data)
 
 	return ds
 }
 
-func readCSV(filepath string) [][]string {
-	f, err := os.Open(filepath)
+func readFile(filepath string) []byte {
+	content, err := os.ReadFile(filepath)
 	if err != nil {
 		fmt.Printf("Error - cannot open file %s.\n", filepath)
 		os.Exit(2)
 	}
-	defer f.Close()
-	reader := csv.NewReader(f)
-	// r := csv.NewReader(strings.NewReader(os.Args[1]))
+	return content
+}
+
+func readCSV(content []byte) [][]string {
+	reader := csv.NewReader(bytes.NewReader(content))
+
 	records, err := reader.ReadAll()
 	if err != nil {
-		fmt.Printf("Error - cannot read file %s.\n", filepath)
+		fmt.Printf("Error - cannot read contents of current file.\n")
 		os.Exit(3)
 	}
 	return records
