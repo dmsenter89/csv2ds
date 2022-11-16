@@ -153,6 +153,12 @@ func writeDataStepFromCSVData(data CSVData) string {
 
 	template += fmt.Sprintln("\tinfile datalines DSD;")
 
+	var lenstatement string = buildLengthStatement(data)
+
+	if lenstatement != "" {
+		template += fmt.Sprintf("\t%s\n", lenstatement)
+	}
+
 	template += fmt.Sprintf("\t%s\n", buildInputStatement(data.header, data.isNumeric))
 	template += fmt.Sprintln("\tdatalines;")
 
@@ -161,6 +167,29 @@ func writeDataStepFromCSVData(data CSVData) string {
 	template += ";\n"
 
 	return template
+}
+
+// By default, SAS stores character variables as 8 bytes. A length
+// statement is used to specify that a longer string is meant to be
+// stored. The buildLengthStatement function iterates over the maximum
+// column item lengths and generates the appropriate length statement.
+// If no length statement is neccesary, an empty string is returned.
+func buildLengthStatement(data CSVData) string {
+	var statement string = "length"
+	for i, elem := range data.maxLength {
+		if elem > 8 && !data.isNumeric[i] {
+			statement += fmt.Sprintf(" %s $%d", data.header[i], elem)
+		}
+	}
+
+	statement += ";"
+
+	// if no character is longer than 8 bytes, return emtpy string
+	if statement == "length;" {
+		statement = ""
+	}
+
+	return statement
 }
 
 // buildInputStatement generates the input statement for the SAS data

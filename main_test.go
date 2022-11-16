@@ -173,6 +173,24 @@ Barbara,F,13,65.3,-98
 					{"Barbara", "F", "13", "65.3", "-98"}},
 				isNumeric: []bool{false, false, true, true, true}},
 		}, solution},
+		{"Case including a length statement", args{
+			CSVData{
+				dsName: "sample",
+				header: []string{"var1", "var2"},
+				records: [][]string{{"1", "A long string"},
+					{"2", "An even longer string"}},
+				isNumeric: []bool{true, false},
+				maxLength: []int{10, 21},
+			}},
+			`data sample;
+	infile datalines DSD;
+	length var2 $21;
+	input var1 var2 $;
+	datalines;
+1,A long string
+2,An even longer string
+;
+`},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -248,6 +266,45 @@ func Test_maxLengthOfColumn(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := maxLengthOfColumn(tt.args.records); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("maxLengthOfColumn() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_buildLengthStatement(t *testing.T) {
+	type args struct {
+		data CSVData
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{"One Long Variable, no numbers", args{CSVData{
+			header:    []string{"var"},
+			isNumeric: []bool{false},
+			maxLength: []int{20},
+		}}, "length var $20;"},
+		{"Two vars, one numeric", args{CSVData{
+			header:    []string{"var1", "var2"},
+			isNumeric: []bool{true, false},
+			maxLength: []int{20, 20},
+		}}, "length var2 $20;"},
+		{"One numeric, no return", args{CSVData{
+			header:    []string{"var"},
+			isNumeric: []bool{true},
+			maxLength: []int{99},
+		}}, ""},
+		{"Two short variables", args{CSVData{
+			header:    []string{"var1", "var2"},
+			isNumeric: []bool{false, false},
+			maxLength: []int{2, 8},
+		}}, ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := buildLengthStatement(tt.args.data); got != tt.want {
+				t.Errorf("buildLengthStatement() = '%v', want '%v'", got, tt.want)
 			}
 		})
 	}
