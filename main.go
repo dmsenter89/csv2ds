@@ -1,3 +1,19 @@
+// The CSV2DS Program
+//
+// This program provides a command line tool for turning a CSV file
+// into a SAS data step. If a list of CSV files is provided, multiple
+// data steps are generated with each data set named like the basename
+// of the CSV file(s). If "-" is passed as an argument, the CSV file
+// is read from STDIN. This allows usage of this program with a pipe.
+// All output is printed to STDOUT.
+//
+// This software uses minimal parsing to guess whether a particular
+// entry is numeric. If an entry is determined to be a string, the
+// appropriate LENGTH statement will be set. No length statements are
+// set for numeric columns. Since only minimal parsing is done, you may
+// need to add INFORMAT or other statements to get the desired result.
+//
+// Author: Michael Senter, PhD
 package main
 
 import (
@@ -12,14 +28,21 @@ import (
 	"strings"
 )
 
+// A CSVData struct holds the key information needed
+// to populate a data step template.
 type CSVData struct {
-	dsName    string
-	header    []string
-	records   [][]string
-	isNumeric []bool
-	maxLength []int
+	dsName    string     // a SAS valid member name to be used for the SAS data set
+	header    []string   // the header row of the CSV file
+	records   [][]string // the records in the CSV file
+	isNumeric []bool     // whether a particular column is numeric
+	maxLength []int      // maximum length of a string column
 }
 
+// The processing logic behind main is to first check if arguments are
+// passed to the program. If not, the function prints a usage statement
+// and exits. If arguments are given, the are processed in turn and populate
+// a template string. After all files are procesed, the template string is
+// printed to STDOUT.
 func main() {
 	var args int = len(os.Args)
 	var output string
@@ -46,6 +69,7 @@ func usage() {
 	fmt.Printf("without the extension. If fileD equals '-' the CSV data is read from stdin.\n")
 }
 
+// Returns the file's base name without the extension.
 func filenameWithoutExtension(filepath string) string {
 	var fileName string = path.Base(filepath)
 	var fileExtension string = path.Ext(filepath)
@@ -223,6 +247,7 @@ func buildDatalines(records [][]string) string {
 // processFile is the main driver of this program. It reads the relevant
 // file, initializes a CSVData object and generates the data step template.
 func processFile(filename string) string {
+	// Contents is a byte slice holding an entire CSV record, including header.
 	var contents []byte
 	if filename == "-" {
 		// read from STDIN
@@ -231,13 +256,15 @@ func processFile(filename string) string {
 		contents = readFile(filename)
 	}
 
-	records := readCSV(contents)
-	data := initializeCSVData(filename, records)
-	ds := writeDataStepFromCSVData(data)
+	// records will contain the entire CSV file contents
+	var records [][]string = readCSV(contents)
+	var data CSVData = initializeCSVData(filename, records)
+	var ds string = writeDataStepFromCSVData(data)
 
 	return ds
 }
 
+// Reads the entire contents of a file into a byte slice.
 func readFile(filepath string) []byte {
 	content, err := os.ReadFile(filepath)
 	if err != nil {
@@ -247,6 +274,8 @@ func readFile(filepath string) []byte {
 	return content
 }
 
+// Reads the STDIN into a byte slice. This function is
+// used to read from a pipe.
 func readSTDIN() []byte {
 	reader := bufio.NewReader(os.Stdin)
 	pipe, err := io.ReadAll(reader)
@@ -257,6 +286,7 @@ func readSTDIN() []byte {
 	return pipe
 }
 
+// Wrapper around reading a CSV from a byte slice.
 func readCSV(content []byte) [][]string {
 	reader := csv.NewReader(bytes.NewReader(content))
 
